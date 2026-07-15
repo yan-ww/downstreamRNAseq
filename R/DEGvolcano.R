@@ -8,16 +8,14 @@ suppressPackageStartupMessages(library(clusterProfiler))
 suppressPackageStartupMessages(library(dplyr))
 suppressPackageStartupMessages(library(stringr))
 options(download.file.method="wget")
-DE<-function(a){
-  b<-colnames(a)
-  condition<-substring(b,nchar(b))
-  people<-substr(b,3,nchar(b)-1)
-  coldata<-data.frame(row.names=colnames(a),people,condition)
-  dds<-DESeqDataSetFromMatrix(a,coldata,design=~people+condition)
+DE<-function(a,condition,FC=1.5,pval=0.05,metadata){
+  colnames(metadata) = "group"
+  dds<-DESeqDataSetFromMatrix(a,metadata,design=~group)
   dds<-DESeq(dds)
-  res<-results(dds,contrast=c("condition","F","N"))
+  res<-results(dds,contrast=c("group",levels(metadata$group)[2],
+                                          levels(metadata$group)[1]))
   res<-res[order(res$pvalue),]
-  res$change<-as.factor(ifelse((res$pvalue) < 0.05 & (res$log2FoldChange) > log2(1.5),"up",ifelse(res$pvalue < 0.05 & res$log2FoldChange < (-log2(1.5)),"down","not")))
+  res$change<-as.factor(ifelse((res$padj) < pval & (res$log2FoldChange) > log2(FC),"up",ifelse(res$padj < pval & res$log2FoldChange < (-log2(FC)),"down","not")))
   return(res)
 }
 
